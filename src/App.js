@@ -1,5 +1,6 @@
 import React from "react";
 import * as fcl from "@onflow/fcl";
+import { authorization } from "./authorization";
 
 // CONFIGURE ACCESS NODE
 fcl.config().put("accessNode.api", "http://localhost:8080");
@@ -13,7 +14,8 @@ fcl
 
 // CONFIGURE AUTHORIZATION FUNCTION
 // replace with your authorization function.
-const AUTHORIZATION_FUNCTION = fcl.currentUser().authorization;
+// const AUTHORIZATION_FUNCTION = fcl.currentUser().authorization;
+const AUTHORIZATION_FUNCTION = authorization;
 
 const verify = async () => {
   try {
