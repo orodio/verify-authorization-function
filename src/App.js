@@ -83,17 +83,7 @@ const verify = async () => {
 
 function App() {
 
-
-  const username = 'flow40';
-
-
-  const register = async () => {
-    await magic.auth.registerWithWebAuthn({
-     username,
-    })
-};
-
-  const loginWithWebAuthn = async () => {
+  const loginWithMagic = async () => {
 
     const token = await magic.auth.loginWithMagicLink({email: 'YOUR EMAIL'});
     console.log(token);
@@ -103,8 +93,7 @@ function App() {
   return (
     <div>
       <button onClick={verify}>Verify</button>
-      <button onClick={register}>register</button>
-      <button onClick={loginWithWebAuthn}>login</button>
+      <button onClick={loginWithMagic}>login</button>
 
 
     </div>
