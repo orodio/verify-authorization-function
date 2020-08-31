@@ -8,9 +8,12 @@ fcl.config().put("accessNode.api", "http://localhost:8080");
 // CONFIGURE WALLET
 // replace with your own wallets configuration
 // Below is the local environment configuration for the dev-wallet
-fcl
-  .config()
-  .put("challenge.handshake", "http://localhost:8701/flow/authenticate");
+//
+// NOT APPLICABLE WITH HARDWARE WALLET CURRENTLY:
+//
+// fcl
+//   .config()
+//   .put("challenge.handshake", "http://localhost:8701/flow/authenticate");
 
 // CONFIGURE AUTHORIZATION FUNCTION
 // replace with your authorization function.

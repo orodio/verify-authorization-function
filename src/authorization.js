@@ -1,49 +1,64 @@
-import { ec as EC } from "elliptic";
-import { SHA3 } from "sha3";
 import * as fcl from "@onflow/fcl";
-const ec = new EC("p256");
+import { getAddressAndPublicKey, signTransaction } from "./ledgerIntegration";
 
-const ADDRESS = "f8d6e0586b0a20c7";
-const PRIVATE_KEY =
-  "dd076c0d2a67df75dee739030ed960cc5419f7e930b177fa2b1b166a2f491676";
-
-const hashMsgHex = msgHex => {
-  const sha = new SHA3(256);
-  sha.update(Buffer.from(msgHex, "hex"));
-  return sha.digest();
-};
-
-export const signWithKey = (privateKey, msgHex) => {
-  const key = ec.keyFromPrivate(Buffer.from(privateKey, "hex"));
-  const sig = key.sign(hashMsgHex(msgHex));
-  const n = 32; // half of signature length?
-  const r = sig.r.toArrayLike(Buffer, "be", n);
-  const s = sig.s.toArrayLike(Buffer, "be", n);
-  return Buffer.concat([r, s]).toString("hex");
-};
+// current cadded AuthAccount constructor (what you use to create an account on flow)
+// requires a public key to be in a certain format. That format is an rlp encoded value
+// that encodes the key itself, what curve it uses, how the signed values are hashed
+// and the keys weight.
+const encodePublicKeyForFlow = publicKey =>
+  rlp
+    .encode([
+      Buffer.from(publicKey, "hex"), // publicKey hex to binary
+      2, // P256 per https://github.com/onflow/flow/blob/master/docs/accounts-and-keys.md#supported-signature--hash-algorithms
+      3, // SHA3-256 per https://github.com/onflow/flow/blob/master/docs/accounts-and-keys.md#supported-signature--hash-algorithms
+      1000, // give key full weight
+    ])
+    .toString("hex")
 
 export const authorization = async (account = {}) => {
-  const addr = ADDRESS;
-  const keyId = 0;
 
-  let sequenceNum;
+  // Retrieve address and public key from ledger device
+  // const {publicKey, address, returnCode, errorMessage }
+
+  const deviceAccountInfo = await getAddressAndPublicKey();
+  console.log(deviceAccountInfo);
+
+  if (deviceAccountInfo.returnCode !== 0x9000) {
+    console.error("Failure retrieving address/public key from ledger device");
+    return;
+  }
+
+  // Encode public key for Flow
+  const encodedPublicKey = encodePublicKeyForFlow(deviceAccountInfo.publicKey);
+
+  // Determine key index and sequence number from chain
+  var getAccountResponse = await fcl.send(fcl.getAccount(deviceAccountInfo.address));
+  var getAccountData = await fcl.decode(getAccountResponse);
+  console.log(getAccountData);
+
+  // TODO: Determine keyId and sequence number based on public key
+
+  const keyId = 1;
+  let sequenceNum = 0;
+
   if (account.role.proposer) {
-    const response = await fcl.send([fcl.getAccount(addr)]);
+    const response = await fcl.send([fcl.getAccount(deviceAccountInfo.address)]);
     const acct = await fcl.decode(response);
     sequenceNum = acct.keys[keyId].sequenceNumber;
   }
 
-  const signingFunction = data => {
+  const signingFunction = async (data) => {
+    const signature = await signTransaction(data);
     return {
-      addr,
+      address: deviceAccountInfo.address,
       keyId,
-      signature: signWithKey(PRIVATE_KEY, data.message)
+      signature: signature,
     };
   };
 
   return {
     ...account,
-    addr,
+    address: deviceAccountInfo.address,
     keyId,
     signingFunction,
     sequenceNum
